@@ -1,6 +1,6 @@
-import os  # 👈 add this to load environment variables
 import json
 import asyncio
+import os
 from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types
 from aiogram.enums import ParseMode
@@ -13,9 +13,10 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import CommandStart
 from aiogram import F
 
-# 🔁 Use environment variables instead of hardcoding
-TOKEN = os.getenv("BOT_TOKEN")  
-CHANNEL_ID = int(os.getenv("CHANNEL_ID", "-1002326785865"))  # Optional fallback if not set
+# Load token and channel IDs from environment variables
+TOKEN = os.getenv("7668643270:AAEjxp0JKx_4A7KwqegRrzXWvFh1kty5Bkk")
+CHANNEL_VIP_MAIN = int(os.getenv("-1002326785865"))
+CHANNEL_VIP_LITE = int(os.getenv("-1002670897013"))
 
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
