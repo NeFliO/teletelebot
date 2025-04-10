@@ -15,8 +15,8 @@ from aiogram import F
 
 # Load token and channel IDs from environment variables
 TOKEN = os.getenv("7668643270:AAEjxp0JKx_4A7KwqegRrzXWvFh1kty5Bkk")
-CHANNEL_VIP_MAIN = int(os.getenv("-1002326785865"))
-CHANNEL_VIP_LITE = int(os.getenv("-1002670897013"))
+CHANNEL_VIP_MAIN = int(os.getenv("CHANNEL_VIP_MAIN"))
+CHANNEL_VIP_LITE = int(os.getenv("CHANNEL_VIP_LITE"))
 
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
