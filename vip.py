@@ -1,4 +1,4 @@
-import os
+import os  # 👈 add this to load environment variables
 import json
 import asyncio
 from datetime import datetime, timedelta
@@ -13,7 +13,7 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import CommandStart
 from aiogram import F
 
-# Use environment variables instead of hardcoding
+# 🔁 Use environment variables instead of hardcoding
 TOKEN = os.getenv("BOT_TOKEN")  
 CHANNEL_ID = int(os.getenv("CHANNEL_ID", "-1002326785865"))  # Optional fallback if not set
 
