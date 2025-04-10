@@ -14,7 +14,7 @@ from aiogram.filters import CommandStart
 from aiogram import F
 
 # Load token and channel IDs from environment variables
-TOKEN = os.getenv("7668643270:AAEjxp0JKx_4A7KwqegRrzXWvFh1kty5Bkk")
+TOKEN = os.getenv("TOKEN")
 CHANNEL_VIP_MAIN = int(os.getenv("CHANNEL_VIP_MAIN"))
 CHANNEL_VIP_LITE = int(os.getenv("CHANNEL_VIP_LITE"))
 
