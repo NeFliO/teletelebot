@@ -131,7 +131,10 @@ async def show_tariff(call: types.CallbackQuery):
     tariff = next((t for t in TARIFFS if t["id"] == tariff_id), None)
     if not tariff:
         return
+
+    # Кнопка оплаты и назад
     markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💸 Оплата", callback_data=f"pay_{tariff_id}")],
         [InlineKeyboardButton(text="Назад", callback_data="back_to_tariffs")]
     ])
     await call.message.edit_text(tariff["description"], reply_markup=markup)
@@ -142,6 +145,69 @@ async def back_to_tariffs(call: types.CallbackQuery):
     for t in TARIFFS:
         builder.button(text=t["name"], callback_data=f"tariff_{t['id']}")
     await call.message.edit_text("Выберите тариф:", reply_markup=builder.as_markup())
+
+@dp.callback_query(F.data.startswith("pay_"))
+async def show_payment_options(call: types.CallbackQuery):
+    tariff_id = call.data.split("_")[1]
+    tariff = next((t for t in TARIFFS if t["id"] == tariff_id), None)
+    if not tariff:
+        return
+
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Сбербанк", callback_data=f"sber_{tariff_id}")],
+        [InlineKeyboardButton(text="СБП", callback_data=f"sbp_{tariff_id}")],
+        [InlineKeyboardButton(text="Назад", callback_data=f"tariff_{tariff_id}")]
+    ])
+    await call.message.edit_text(f"Выберите способ оплаты для тарифа {tariff['name']}:", reply_markup=markup)
+    
+@dp.callback_query(F.data.startswith("sber_"))
+async def pay_sber(call: types.CallbackQuery):
+    tariff_id = call.data.split("_")[1]
+    tariff = next((t for t in TARIFFS if t["id"] == tariff_id), None)
+    if not tariff:
+        return
+
+    text = (
+        f"<b>Способ оплаты: Сбербанк</b>\n"
+        f"К оплате: {tariff['price']:.2f} 🇷🇺RUB\n\n"
+        f"<b>Реквизиты для оплаты:</b>\n\n"
+        f"Отправьте точную сумму в соответствии с тарифом, далее отправьте скриншот оплаты с чеком администрации канала: @bloodtrials или @deathwithoutregret\n\n"
+        f"<b>Сбербанк по номеру карты:</b>\n"
+        f"Получатель: Андрей С.\n\n"
+        f"<code>2202206392411927</code>\n"
+        f"__________________________\n"
+        f"Вы платите физическому лицу.\n"
+        f"Деньги поступят на счёт получателя."
+    )
+
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Назад", callback_data=f"pay_{tariff_id}")]
+    ])
+    await call.message.edit_text(text, reply_markup=markup)
+    
+@dp.callback_query(F.data.startswith("sbp_"))
+async def pay_sbp(call: types.CallbackQuery):
+    tariff_id = call.data.split("_")[1]
+    tariff = next((t for t in TARIFFS if t["id"] == tariff_id), None)
+    if not tariff:
+        return
+
+    text = (
+        f"<b>Способ оплаты: СБП (Сбербанк)</b>\n"
+        f"К оплате: {tariff['price']:.2f} 🇷🇺RUB\n\n"
+        f"<b>Реквизиты для оплаты:</b>\n\n"
+        f"Отправьте точную сумму в соответствии с тарифом, далее отправьте скриншот оплаты с чеком администрации канала: @bloodtrials или @deathwithoutregret\n\n"
+        f"<b>СПБ по номеру (ТОЛЬКО на Сбербанк!):</b>\n"
+        f"<code>+79610605986</code> (Андрей С.)\n"
+        f"__________________________\n"
+        f"Вы платите физическому лицу.\n"
+        f"Деньги поступят на счёт получателя."
+    )
+
+    markup = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="Назад", callback_data=f"pay_{tariff_id}")]
+    ])
+    await call.message.edit_text(text, reply_markup=markup)
 
 @dp.message(F.text == "⏳ Моя подписка")
 async def my_subscription(message: types.Message):
