@@ -13,6 +13,7 @@ from aiogram.utils.markdown import hbold
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import CommandStart
 from aiogram import F
+from datetime import datetime
 
 # Load token and channel IDs from environment variables
 TOKEN = os.getenv("TOKEN")
@@ -54,7 +55,16 @@ def save_subs(subs):
         json.dump(subs, f, ensure_ascii=False, indent=2)
 
 def save_user(user: types.User):
-    cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user.id,))
+    cursor.execute("""
+        INSERT OR IGNORE INTO users (user_id, username, first_name, last_name, registered_at)
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        user.id,
+        user.username,
+        user.first_name,
+        user.last_name,
+        datetime.now().isoformat()
+    ))
     conn.commit()
 
 # Find user by ID
