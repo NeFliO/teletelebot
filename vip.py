@@ -1,6 +1,7 @@
 import json
 import asyncio
 import os
+import sqlite3
 from datetime import datetime, timedelta
 from aiogram import Bot, Dispatcher, types
 from aiogram.enums import ParseMode
@@ -17,9 +18,24 @@ from aiogram import F
 TOKEN = os.getenv("TOKEN")
 CHANNEL_VIP_MAIN = int(os.getenv("CHANNEL_VIP_MAIN"))
 CHANNEL_VIP_LITE = int(os.getenv("CHANNEL_VIP_LITE"))
+ADMIN_ID = 1106693795
 
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
+
+# === CONNECT TO SQLITE DATABASE ===
+import sqlite3
+
+conn = sqlite3.connect("users.db")
+cursor = conn.cursor()
+
+# Create users table if it doesn't exist
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS users (
+    user_id INTEGER PRIMARY KEY
+)
+""")
+conn.commit()
 
 # Load tariffs
 with open("tariffs.json", "r", encoding="utf-8") as f:
@@ -36,6 +52,10 @@ def load_subs():
 def save_subs(subs):
     with open("subs.json", "w", encoding="utf-8") as f:
         json.dump(subs, f, ensure_ascii=False, indent=2)
+
+def save_user(user: types.User):
+    cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user.id,))
+    conn.commit()
 
 # Find user by ID
 def get_user_subs(user_id):
@@ -116,6 +136,7 @@ reply_kb = ReplyKeyboardMarkup(keyboard=[
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
+    save_user(message.from_user)  # NEW: save user
     await message.answer("Привет! Выберите действие ниже:", reply_markup=reply_kb)
 
 @dp.message(F.text == "💳 Тарифы")
@@ -222,6 +243,33 @@ async def my_subscription(message: types.Message):
         left = exp - now
         lines.append(f"Тариф {t['id']} — до {exp.strftime('%Y-%m-%d %H:%M:%S')} (осталось {left.days} дн.)")
     await message.answer("\n".join(lines), reply_markup=reply_kb)
+
+@dp.message(F.text.startswith("/broadcast"))
+async def broadcast_message(message: types.Message):
+    if message.from_user.id != ADMIN_ID:
+        return  # Ignore if not admin
+
+    # Get the message to broadcast (after the command)
+    text = message.text[len("/broadcast"):].strip()
+    if not text:
+        await message.answer("Пожалуйста, добавьте текст после команды /broadcast.")
+        return
+
+    # Send message to all users in DB
+    cursor.execute("SELECT user_id FROM users")
+    user_ids = cursor.fetchall()
+    sent = 0
+    failed = 0
+
+    for (user_id,) in user_ids:
+        try:
+            await bot.send_message(user_id, text)
+            sent += 1
+            await asyncio.sleep(0.05)  # Avoid flooding
+        except:
+            failed += 1
+
+    await message.answer(f"✅ Рассылка завершена\nОтправлено: {sent}\nНе удалось: {failed}")
 
 async def main():
     asyncio.create_task(auto_kick())
