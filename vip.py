@@ -285,4 +285,5 @@ async def main():
     asyncio.create_task(auto_kick())
     await dp.start_polling(bot)
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
