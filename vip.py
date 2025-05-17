@@ -293,10 +293,9 @@ async def broadcast_message(message: types.Message):
 
     await message.answer(f"✅ Рассылка завершена\nОтправлено: {sent}\nНе удалось: {failed}")
 
-@dp.errors_handler()
-async def global_error_handler(update, exception):
-    print(f"[GLOBAL ERROR] Exception: {exception}")
-    return True  # Prevent crash
+@dp.errors()
+async def error_handler(update: types.Update, exception: Exception):
+    print(f"[ERROR] Exception caught: {exception}")
 
 async def main():
     asyncio.create_task(auto_kick())
