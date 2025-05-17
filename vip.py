@@ -13,6 +13,7 @@ from aiogram.utils.markdown import hbold
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import CommandStart
 from aiogram import F
+from aiogram.exceptions import TelegramForbiddenError, TelegramAPIError
 from datetime import datetime
 
 # Load token and channel IDs from environment variables
@@ -146,8 +147,13 @@ reply_kb = ReplyKeyboardMarkup(keyboard=[
 
 @dp.message(CommandStart())
 async def start(message: types.Message):
-    save_user(message.from_user)  # NEW: save user
-    await message.answer("Привет! Выберите действие ниже:", reply_markup=reply_kb)
+    save_user(message.from_user)
+    try:
+        await message.answer("Привет! Выберите действие ниже:", reply_markup=reply_kb)
+    except TelegramForbiddenError:
+        print(f"[ERROR] Bot blocked by user {message.from_user.id}")
+    except TelegramAPIError as e:
+        print(f"[ERROR] Failed to send start message to {message.from_user.id}: {e}")
 
 @dp.message(F.text == "💳 Тарифы")
 async def tariffs_menu(message: types.Message):
@@ -254,6 +260,8 @@ async def my_subscription(message: types.Message):
         lines.append(f"Тариф {t['id']} — до {exp.strftime('%Y-%m-%d %H:%M:%S')} (осталось {left.days} дн.)")
     await message.answer("\n".join(lines), reply_markup=reply_kb)
 
+from aiogram.exceptions import TelegramForbiddenError, TelegramAPIError
+
 @dp.message(F.text.startswith("/broadcast"))
 async def broadcast_message(message: types.Message):
     if message.from_user.id != ADMIN_ID:
@@ -276,10 +284,19 @@ async def broadcast_message(message: types.Message):
             await bot.send_message(user_id, text)
             sent += 1
             await asyncio.sleep(0.05)  # Avoid flooding
-        except:
+        except TelegramForbiddenError:
+            print(f"[BROADCAST] User {user_id} blocked the bot.")
+            failed += 1
+        except TelegramAPIError as e:
+            print(f"[BROADCAST] Error sending to {user_id}: {e}")
             failed += 1
 
     await message.answer(f"✅ Рассылка завершена\nОтправлено: {sent}\nНе удалось: {failed}")
+
+@dp.errors_handler()
+async def global_error_handler(update, exception):
+    print(f"[GLOBAL ERROR] Exception: {exception}")
+    return True  # Prevent crash
 
 async def main():
     asyncio.create_task(auto_kick())
@@ -287,3 +304,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+    
