@@ -165,15 +165,12 @@ async def start(message: types.Message):
     try:
         await message.answer("Привет! Выберите действие ниже:", reply_markup=reply_kb)
 
-        # Promo message
         promo_kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Активировать промокод", callback_data="activate_promo")]
         ])
-        await message.answer("🎁 <b>ПРОМОКОД НА 20% СКИДКУ НА ВСЕ ТАРИФЫ</b>", reply_markup=promo_kb)
-    except TelegramForbiddenError:
-        print(f"[ERROR] Bot blocked by user {message.from_user.id}")
-    except TelegramAPIError as e:
-        print(f"[ERROR] Failed to send start message to {message.from_user.id}: {e}")
+        await message.answer("🎁 <b>ПРОМОКОД НА 20% СКИДКУ НА ВСЕ ТАРИФЫ</b>", reply_markup=promo_kb, parse_mode="HTML")
+    except Exception as e:
+        print(f"[ERROR] Unexpected error for user {message.from_user.id}: {e}")
 
 @dp.callback_query(F.data == "activate_promo")
 async def handle_activate_promo(call: types.CallbackQuery):
