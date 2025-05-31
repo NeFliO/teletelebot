@@ -34,7 +34,12 @@ cursor = conn.cursor()
 # Create users table if it doesn't exist
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS users (
-    user_id INTEGER PRIMARY KEY
+    user_id INTEGER PRIMARY KEY,
+    username TEXT,
+    first_name TEXT,
+    last_name TEXT,
+    registered_at TEXT,
+    promo_active INTEGER DEFAULT 0
 )
 """)
 conn.commit()
@@ -57,8 +62,8 @@ def save_subs(subs):
 
 def save_user(user: types.User):
     cursor.execute("""
-        INSERT OR IGNORE INTO users (user_id, username, first_name, last_name, registered_at)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT OR IGNORE INTO users (user_id, username, first_name, last_name, registered_at, promo_active)
+        VALUES (?, ?, ?, ?, ?, 0)
     """, (
         user.id,
         user.username,
@@ -75,6 +80,15 @@ def get_user_subs(user_id):
         if user["user_id"] == user_id:
             return user
     return None
+
+def is_promo_active(user_id):
+    cursor.execute("SELECT promo_active FROM users WHERE user_id = ?", (user_id,))
+    row = cursor.fetchone()
+    return row and row[0] == 1
+
+def activate_promo(user_id):
+    cursor.execute("UPDATE users SET promo_active = 1 WHERE user_id = ?", (user_id,))
+    conn.commit()
 
 # Add or update user's subscription
 def add_subscription(user_id, tariff_id):
@@ -150,10 +164,21 @@ async def start(message: types.Message):
     save_user(message.from_user)
     try:
         await message.answer("Привет! Выберите действие ниже:", reply_markup=reply_kb)
+
+        # Promo message
+        promo_kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="Активировать промокод", callback_data="activate_promo")]
+        ])
+        await message.answer("🎁 <b>ПРОМОКОД НА 20% СКИДКУ НА ВСЕ ТАРИФЫ</b>", reply_markup=promo_kb)
     except TelegramForbiddenError:
         print(f"[ERROR] Bot blocked by user {message.from_user.id}")
     except TelegramAPIError as e:
         print(f"[ERROR] Failed to send start message to {message.from_user.id}: {e}")
+
+@dp.callback_query(F.data == "activate_promo")
+async def handle_activate_promo(call: types.CallbackQuery):
+    activate_promo(call.from_user.id)
+    await call.message.edit_text("✅ Промокод был успешно активирован.")
 
 @dp.message(F.text == "💳 Тарифы")
 async def tariffs_menu(message: types.Message):
@@ -204,9 +229,12 @@ async def pay_sber(call: types.CallbackQuery):
     if not tariff:
         return
 
+    discount = 0.8 if is_promo_active(call.from_user.id) else 1.0
+    price = tariff["price"] * discount
+
     text = (
         f"<b>Способ оплаты: Сбербанк</b>\n"
-        f"К оплате: {tariff['price']:.2f} 🇷🇺RUB\n\n"
+        f"К оплате: {price:.2f} 🇷🇺RUB\n\n"
         f"<b>Реквизиты для оплаты:</b>\n\n"
         f"Отправьте точную сумму в соответствии с тарифом, далее отправьте скриншот оплаты с чеком администрации канала: @bloodtrials или @deathwithoutregret\n\n"
         f"<b>Сбербанк по номеру карты:</b>\n"
@@ -229,9 +257,12 @@ async def pay_sbp(call: types.CallbackQuery):
     if not tariff:
         return
 
+    discount = 0.8 if is_promo_active(call.from_user.id) else 1.0
+    price = tariff["price"] * discount
+
     text = (
         f"<b>Способ оплаты: СБП (Сбербанк)</b>\n"
-        f"К оплате: {tariff['price']:.2f} 🇷🇺RUB\n\n"
+        f"К оплате: {price:.2f} 🇷🇺RUB\n\n"
         f"<b>Реквизиты для оплаты:</b>\n\n"
         f"Отправьте точную сумму в соответствии с тарифом, далее отправьте скриншот оплаты с чеком администрации канала: @bloodtrials или @deathwithoutregret\n\n"
         f"<b>СПБ по номеру (ТОЛЬКО на Сбербанк!):</b>\n"
